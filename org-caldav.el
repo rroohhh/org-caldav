@@ -332,6 +332,14 @@ events URL for a calendar."
   "String to replace newlines in the LOCATION field with."
   :type 'string)
 
+(defcustom org-caldav-save-buffers t
+  "Whether to save Org buffers modified by sync.
+
+Note this might be needed for some versions of Org (9.5+?), which
+have trouble finding IDs in unsaved buffers, causing syncs and
+the unit tests to fail otherwise."
+  :type 'boolean)
+
 ;; Internal variables
 (defvar org-caldav-oauth2-available
   (condition-case nil (require 'oauth2) (error))
@@ -1315,8 +1323,7 @@ returned as a cons (POINT . LEVEL)."
 			    (org-caldav-event-status cur) 'cal->org)
 		      org-caldav-sync-result)
 		(setq buf (current-buffer))
-                ;; Org 9.5 can't find new IDs in unsaved files (upstream bug?)
-                (save-buffer))
+                (when org-caldav-save-buffers (save-buffer)))
 	    (error
 	     ;; inbox file/headline could not be found
 	     (org-caldav-event-set-status cur 'error)
@@ -1406,7 +1413,7 @@ which can only be synced to calendar. Ignoring." uid))
 			  (if (eq timesync 'orgsexp)
 			      'error:changed-orgsexp 'cal->org))
 		    org-caldav-sync-result)
-              (save-buffer)))))
+              (when org-caldav-save-buffers (save-buffer))))))
 	;; Update the event database.
 	(org-caldav-event-set-status cur 'synced)
 	(with-current-buffer buf
@@ -1423,7 +1430,7 @@ which can only be synced to calendar. Ignoring." uid))
 		     (y-or-n-p "Delete this entry locally? ")))
 	(delete-region (org-entry-beginning-position)
 		       (org-entry-end-position))
-        (save-buffer)
+        (when org-caldav-save-buffers (save-buffer))
 	(setq org-caldav-event-list
 	      (delete cur org-caldav-event-list))
 	(org-caldav-debug-print 1
