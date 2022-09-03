@@ -1405,7 +1405,8 @@ which can only be synced to calendar. Ignoring." uid))
 			  (org-caldav-event-status cur)
 			  (if (eq timesync 'orgsexp)
 			      'error:changed-orgsexp 'cal->org))
-		    org-caldav-sync-result)))))
+		    org-caldav-sync-result)
+              (save-buffer)))))
 	;; Update the event database.
 	(org-caldav-event-set-status cur 'synced)
 	(with-current-buffer buf
@@ -1422,6 +1423,7 @@ which can only be synced to calendar. Ignoring." uid))
 		     (y-or-n-p "Delete this entry locally? ")))
 	(delete-region (org-entry-beginning-position)
 		       (org-entry-end-position))
+        (save-buffer)
 	(setq org-caldav-event-list
 	      (delete cur org-caldav-event-list))
 	(org-caldav-debug-print 1
