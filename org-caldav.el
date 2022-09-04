@@ -1065,7 +1065,8 @@ Should I try to resume? "))))
   ;; Cancel scheduled sync, since we've just done so. Also prevents
   ;; recursively scheduling syncs due to `org-caldav-save-buffers'.
   (when org-caldav-sync-when-idle-timer
-    (cancel-timer org-caldav-sync-when-idle-timer))
+    (cancel-timer org-caldav-sync-when-idle-timer)
+    (setq org-caldav-sync-when-idle-timer nil))
   (message "Finished sync."))
 
 (defun org-caldav-update-events-in-cal (icsbuf)
