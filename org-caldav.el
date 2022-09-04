@@ -459,8 +459,7 @@ used as a substitute for `org-agenda'."
 (defun org-caldav-autosync-after-save-hook ()
   (when (cl-some (lambda (x) (file-equal-p x (buffer-file-name)))
                  (org-caldav-get-org-files-for-sync))
-    (when org-caldav-autosync-idle-seconds
-      (org-caldav-sync-when-idle org-caldav-autosync-idle-seconds))))
+    (org-caldav-sync-when-idle org-caldav-autosync-idle-seconds)))
 
 (defun org-caldav-sync-when-idle (secs)
   "Sync with CalDav the next time Emacs is idle for SECS seconds."
@@ -1063,6 +1062,10 @@ Should I try to resume? "))))
   (when org-caldav-show-sync-results
     (org-caldav-display-sync-results))
   (setq org-caldav-last-sync-or-prompt-time (float-time))
+  ;; Cancel scheduled sync, since we've just done so. Also prevents
+  ;; recursively scheduling syncs due to `org-caldav-save-buffers'.
+  (when org-caldav-sync-when-idle-timer
+    (cancel-timer org-caldav-sync-when-idle-timer))
   (message "Finished sync."))
 
 (defun org-caldav-update-events-in-cal (icsbuf)
@@ -1390,7 +1393,7 @@ returned as a cons (POINT . LEVEL)."
 			    (org-caldav-event-status cur) 'cal->org)
 		      org-caldav-sync-result)
 		(setq buf (current-buffer))
-                (org-caldav-update-events-in-org--maybe-save-buffer))
+                (when org-caldav-save-buffers (save-buffer)))
 	    (error
 	     ;; inbox file/headline could not be found
 	     (org-caldav-event-set-status cur 'error)
@@ -1480,7 +1483,7 @@ which can only be synced to calendar. Ignoring." uid))
 			  (if (eq timesync 'orgsexp)
 			      'error:changed-orgsexp 'cal->org))
 		    org-caldav-sync-result)
-              (org-caldav-update-events-in-org--maybe-save-buffer)))))
+              (when org-caldav-save-buffers (save-buffer))))))
 	;; Update the event database.
 	(org-caldav-event-set-status cur 'synced)
 	(with-current-buffer buf
@@ -1497,7 +1500,7 @@ which can only be synced to calendar. Ignoring." uid))
 		     (y-or-n-p "Delete this entry locally? ")))
 	(delete-region (org-entry-beginning-position)
 		       (org-entry-end-position))
-        (org-caldav-update-events-in-org--maybe-save-buffer)
+        (when org-caldav-save-buffers (save-buffer))
 	(setq org-caldav-event-list
 	      (delete cur org-caldav-event-list))
 	(org-caldav-debug-print 1
@@ -1505,13 +1508,6 @@ which can only be synced to calendar. Ignoring." uid))
 	(push (list org-caldav-calendar-id (car cur)
 		    'deleted-in-cal 'removed-from-org)
 	      org-caldav-sync-result)))))
-
-(defun org-caldav-update-events-in-org--maybe-save-buffer ()
-  "Saves the buffer after updating an event in Org."
-  (when org-caldav-save-buffers
-    ;; prevent the current sync from scheduling a future autosync
-    (let ((org-caldav-autosync-idle-seconds nil))
-      (save-buffer))))
 
 (defun org-caldav-change-heading (newheading)
   "Change heading from Org item under point to NEWHEADING."
