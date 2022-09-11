@@ -352,6 +352,10 @@ the unit tests to fail otherwise."
   "Time until `org-caldav-agenda-maybe-sync' re-prompts for sync."
   :type 'number)
 
+(defcustom org-caldav-agenda-maybe-sync-ask nil
+  "Whether `org-caldav-agenda-maybe-sync' should ask before syncing."
+  :type 'boolean)
+
 ;; Internal variables
 (defvar org-caldav-oauth2-available
   (condition-case nil (require 'oauth2) (error))
@@ -481,7 +485,8 @@ since the last sync or prompt."
   (when (or (not org-caldav-last-sync-or-prompt-time)
             (> (- (float-time) org-caldav-last-sync-or-prompt-time)
                org-caldav-agenda-maybe-sync-seconds))
-    (if (y-or-n-p "Sync with caldav server?")
+    (if (or (not org-caldav-agenda-maybe-sync-ask)
+            (y-or-n-p "Sync with caldav server?"))
         (org-caldav-sync)
       (setq org-caldav-last-sync-or-prompt-time (float-time))))
   (call-interactively 'org-agenda))
